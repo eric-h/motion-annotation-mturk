@@ -1,0 +1,88 @@
+<html>
+  <title>AMT : Image Feature Points</title>
+  <head>
+    <script src="./javascripts/jquery.min.js"></script>
+    <script src="./javascripts/jquery.mousewheel.js"></script>
+    <script src="./javascripts/jquery-ui.min.js"></script>
+    <script src="./javascripts/spin.min.js"></script>
+    <script src="./javascripts/features_fixed.js"></script>
+	<script src="./javascripts/achievements.js"></script>
+    <link rel="stylesheet" href="./stylesheets/jquery-ui-1.8.17.custom.css" />
+	<link rel="stylesheet" href="bootstrap/css/bootstrap.css" type="text/css" media="all" />
+	<link href="./stylesheets/achievements.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <link href="./stylesheets/print.css" media="print" rel="stylesheet" type="text/css" />
+	<link href="./stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <!--[if lt IE 8]>
+        <link href="./stylesheets/ie.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <![endif]-->
+  </head>
+  <body>
+    <div id="container">
+	  <!--div class="achievementsBox">
+		<div id="userImage"></div>
+		<div id="userInfo">
+			<span id="userName"></span><br/>
+			<span id="userLevel"></span><br/>
+			<span id="userXP"></span>
+		</div>
+		<div id="userButtons">
+			<button class="userBtn">Achievements</button>
+			<button class="userBtn">Stats</button>
+		</div>
+	  </div-->
+      <h1>Adjust the requested feature points</h1>
+      <p>Read these short <a href=features_fixed_instructions.html target="_blank"
+          class="hlink">instructions</a> before you start, they will make
+        completing the task easier. If you won't follow the instructions, your
+        work will be <u><b>rejected</b></u>. We would be happy to receive
+        suggestions for improvement, or any other feedback that you want to
+        share in the form below.
+      </p>
+      <form id="mturk_form" method="post" action="http://www.mturk.com/mturk/externalSubmit">
+        <input type="hidden" id="assignmentId" name="assignmentId" value="">
+		<input type="hidden" id="fpoints" name="segpoly" value="">
+        <input type="hidden" id="duration" name="duration" value="">
+        <input id="hint" type="text" size=50 id="feedback" name="feedback" value="You can leave your feedback here">
+        <input id="no-hint" type="text" size=50 id="feedback" name="feedback" value="">
+        <input id="submitButton" type="button" class="submitButton" name="Submit Results" value="Submit Results" onClick="submitResults()">
+      </form>
+	  
+	  <hr>
+
+      <div id="functions">
+        <div id="controls"> <button onclick="change_contrast()" id="change_contrast">Change contrast</button>
+		<button onclick="reset_annotation()">Reset</button>
+        </div>
+        <div id="zoom-value">
+          <b>Zoom</b>
+          <span id='zoom'></span>
+        </div>
+        <div id="zoom-slider">
+          <div id="slider"></div>
+        </div>
+      </div>
+	  
+	  <div class="row" style="position:relative; top:20px;">
+		  <div id="feature_points" class="span6">
+		  
+		    <span style="font-size: 20px;">Image A</span>&nbsp;&nbsp;<i class='icon-lock'></i>
+			<canvas id="imageA_canvas">
+			<p>We're sorry, but the image cannot be displayed in your browser</p>
+			</canvas>
+			
+			<span style="font-size:20px; position:relative; top:20px;">Feature points</span>
+			<div class='ctablediv' style="position:relative; top:20px;">
+			</div>
+		  </div>
+		  
+		  <hr>
+		  
+		  <div class="span6">
+			<span style="font-size:20px;">Image B</span>
+			<canvas id="imageB_canvas">
+			</canvas>
+		  </div>
+	  </div>
+    </div>
+  </body>
+</html>
