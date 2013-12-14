@@ -234,10 +234,10 @@ body th, body td, body caption {
   padding: 4px 10px 4px 5px;
 }
 /* line 85, ../../../../../.rvm/gems/ruby-1.9.2-p290/gems/compass-0.11.7/frameworks/blueprint/stylesheets/blueprint/_typography.scss */
-/*body table.striped tr:nth-child(even) td,
+body table.striped tr:nth-child(even) td,
 body table tr.even td {
   background: #e5ecf9;
-}*/
+}
 /* line 86, ../../../../../.rvm/gems/ruby-1.9.2-p290/gems/compass-0.11.7/frameworks/blueprint/stylesheets/blueprint/_typography.scss */
 body tfoot {
   font-style: italic;
@@ -551,39 +551,25 @@ body #content {
   overflow-x: hidden;
 }
 
-/* line 60, ../sass/screen.scss */
-#zoom-value {
-  display: inline;
-  float: right;
-  margin-right: 10px;
-  font-size: 16px;
-  width: 150px;
-  position: relative;
-  left: 70px;
-  top: 2px;
-}
-
 /* line 57, ../sass/screen.scss */
 #zoom-slider {
   display: inline;
-  float: right;
+  float: left;
   margin-right: 0;
-  width: 290px;
-  position: relative;
-  left: 50px;
-  top: 8px;
+  width: 390px;
 }
 /* line 147, ../../../../../.rvm/gems/ruby-1.9.2-p290/gems/compass-0.11.7/frameworks/blueprint/stylesheets/blueprint/_grid.scss */
 * html #zoom-slider {
   overflow-x: hidden;
 }
 
-#status {
-	display: inline;
-	margin-left: 4px;
-	position: relative;
-	top: 2px;
- }
+/* line 60, ../sass/screen.scss */
+#zoom-value {
+  display: inline;
+  float: left;
+  margin-right: 10px;
+  width: 150px;
+}
 /* line 147, ../../../../../.rvm/gems/ruby-1.9.2-p290/gems/compass-0.11.7/frameworks/blueprint/stylesheets/blueprint/_grid.scss */
 * html #zoom-value {
   overflow-x: hidden;
@@ -592,26 +578,27 @@ body #content {
 /* line 63, ../sass/screen.scss */
 #controls {
   display: inline;
+  float: left;
+  margin-right: 10px;
+  width: 390px;
 }
 /* line 147, ../../../../../.rvm/gems/ruby-1.9.2-p290/gems/compass-0.11.7/frameworks/blueprint/stylesheets/blueprint/_grid.scss */
 * html #controls {
   overflow-x: hidden;
 }
 
-#ctable tr{
-	cursor: pointer;
+/* line 66, ../sass/screen.scss */
+#segmentation {
+  position:relative; top:10px;
+  text-align: center;
 }
 
-#imageB_canvas {
-	cursor: move;
+#segmentation_canvas {
+  position:relative; left:-30px;
+  text-align: center;
 }
 
-#instructions{
-  /*position:absolute;*/
-}
-
-input[type=text] {
-	height: 28px;
-	position: relative; top: -5px;
-	margin-right: 2px;
+#firstframe_canvas {
+  position:relative; left:30px;
+  text-align: center;
 }

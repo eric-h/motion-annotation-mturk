@@ -19,7 +19,7 @@ var clickstreamEventType = {
 
 // ClickStream Recorder object
 var clickstream = {};
-clickstream.id = 0;
+clickstream.count = 0;
 clickstream.t0 = (new Date).getTime();
 clickstream.events = [];
 
@@ -31,62 +31,68 @@ clickstream.events.push({
 	x         : 0,
     y         : 0,
 });
-clickstream.id++;
+clickstream.count++;
 
 // Event Handlers
 function clickstreamOnClick(event){
 	clickstream.events.push({
-		id        : clickstream.id,
+		id        : clickstream.count,
 		timestamp : (new Date).getTime(),
 		type      : clickstreamEventID.CLICK,
+		obj       : event.target.id,
 		x         : event.pageX,
 		y         : event.pageY,
 	});
-	clickstream.id++;
+	clickstream.count++;
 }
 
 function clickstreamOnDoubleClick(event){
 	clickstream.pop();
 	clickstream.pop();
 	clickstream.events.push({
-		id        : clickstream.id,
+		id        : clickstream.count,
 		timestamp : (new Date).getTime(),
 		type      : clickstreamEventID.CLICK,
+		obj       : event.target.id,
 		x         : event.pageX,
 		y         : event.pageY,
 	});
-	clickstream.id++;
+	clickstream.count++;
 }
 
 function clickstreanOnFocus(event){
 	clickstream.events.push({
-		id        : clickstream.id,
+		id        : clickstream.count,
 		timestamp : (new Date).getTime(),
 		type      : clickstreamEventID.FOCUS,
+		obj       : event.target.id,
 		x         : event.pageX,
 		y         : event.pageY,
 	});
-	clickstream.id++;
+	clickstream.count++;
 }
 
 function clickstreanOnDefocus(event){
 	clickstream.events.push({
-		id        : clickstream.id,
+		id        : clickstream.count,
 		timestamp : (new Date).getTime(),
 		type      : clickstreamEventID.DEFOCUS,
+		obj       : event.target.id,
 		x         : event.pageX,
 		y         : event.pageY,
 	});
-	clickstream.id++;
+	clickstream.count++;
 }
 
 // Bind Events
 $(document).click(clickstreamOnClick);
 $(document).dblclick(clickstreamOnDoubleClick);
+$(document).focus(clickstreanOnFocus);
 
 // Show ClickStream log (Only for debugging purposes!)
 $(document).keypress(function(event) {
 	if (event.which == 76 || event.which == 108){
 		alert(JSON.stringify(clickstream));
+		//document.write(JSON.stringify(clickstream))
 	}
 });
