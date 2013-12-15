@@ -6,7 +6,6 @@
     <script src="./javascripts/jquery-ui.min.js"></script>
     <script src="./javascripts/spin.min.js"></script>
     <script src="./javascripts/features_fixed.js"></script>
-	<script src="./javascripts/achievements.js"></script>
     <link rel="stylesheet" href="./stylesheets/jquery-ui-1.8.17.custom.css" />
 	<link rel="stylesheet" href="bootstrap/css/bootstrap.css" type="text/css" media="all" />
 	<link href="./stylesheets/achievements.css" media="screen, projection" rel="stylesheet" type="text/css" />
@@ -17,7 +16,7 @@
     <![endif]-->
   </head>
 <body>
-    <div id="container">
+    <div id="container" class="noselection">
 	  <!--div class="achievementsBox">
 		<div id="userImage"></div>
 		<div id="userInfo">
@@ -52,10 +51,10 @@
 		</div>
     </div>
 	
-	<div id="instructions" style="text-align:center; margin-top:60px;">
+	<div id="instructions" class="noselection" style="text-align:center; margin-top:60px;">
 		<div id="step0" class="step">
-			<span style="font-size:20px"><b>Step 0</b>:
-				You must <b><u>accept the HIT</u></b> before you can submit the results.
+			<span style="font-size:24px">
+				You must <b>accept the HIT</b> before you can submit the results.
 			</span>
 		</div>
 		<div id="step1" class="step">
@@ -77,7 +76,7 @@
 			<span style="font-size:17px"><b>Congratulations!</b>
 				You have completed this task. Now you can submit the results using the form below.
 			</span>
-			<form id="mturk_form" method="post" action="http://www.mturk.com/mturk/externalSubmit">
+			<form id="mturk_form" method="post" action="https://www.mturk.com/mturk/externalSubmit">
 				<input type="hidden" id="assignmentId" name="assignmentId" value="">
 				<input type="hidden" id="fpoints" name="segpoly" value="">
 				<input type="hidden" id="duration" name="duration" value="">
@@ -91,8 +90,8 @@
 	
 	<div class="row" style="position:absolute; top:180px; height:100%">
 		<div id="feature_points" class="span6">
-		    <span style="font-size: 20px;">Image A</span>&nbsp;&nbsp;<i class='icon-lock'></i>
-			<canvas id="imageA_canvas">
+		    <span class="noselection" style="font-size: 20px;">Image A&nbsp;&nbsp;<i class='icon-lock'></i></span>
+			<canvas id="imageA_canvas" tabindex='1'>
 			<p>We're sorry, but the image cannot be displayed in your browser</p>
 			</canvas>
 			
@@ -102,8 +101,8 @@
 		</div>
 		  
 		<div class="span6">
-			<span style="font-size:20px;">Image B</span>
-			<canvas id="imageB_canvas">
+			<span class="noselection" style="font-size: 20px;">Image B</span>
+			<canvas id="imageB_canvas" tabindex='1'>
 			</canvas>
 		</div>
 	  </div>

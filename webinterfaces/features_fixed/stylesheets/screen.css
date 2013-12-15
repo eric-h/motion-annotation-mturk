@@ -5,6 +5,12 @@ html {
   border: 0;
 }
 
+body {
+  position: fixed;
+  overflow-y:scroll;
+  width:100%;
+}
+
 /* line 18, ../../../../../.rvm/gems/ruby-1.9.2-p290/gems/compass-0.11.7/frameworks/blueprint/stylesheets/blueprint/reset/_utilities.scss */
 .bp-reset-element, body, h1, h2, h3, h4, h5, h6, article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section, summary, blockquote, q, th, td, caption, table,
 div, span, object, iframe, p,
@@ -606,8 +612,11 @@ body #content {
 	cursor: move;
 }
 
-#instructions{
-  /*position:absolute;*/
+.noselection{
+  -webkit-user-select: none;  
+  -moz-user-select: none;    
+  -ms-user-select: none;      
+  user-select: none;
 }
 
 input[type=text] {

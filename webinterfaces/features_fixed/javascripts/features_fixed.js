@@ -212,7 +212,7 @@ $(document).ready(function() {
   
   // Events
   // Mouse Wheel
-  $("#slider, #imageB_canvas").bind("mousewheel", function(event, delta) {
+  $("#imageB_canvas").bind("mousewheel", function(event, delta) {
       if ($("#slider").slider("value") < 8.0 || delta < 0.0){
 		  $("#slider").slider("value", $("#slider").slider("value") + delta * 0.4);
 		  var x = (viewport_top_left_x + screen_to_viewport_x(event.pageX)*(viewport_width/canvas_width));
@@ -283,10 +283,11 @@ $(document).ready(function() {
     document.getElementById('submitButton').disabled = true;
     document.getElementById('submitButton').value = "You must ACCEPT the HIT before you can submit the results.";
 	show_instructions_step("#step0");
+	$(".row").hide();
   } else {
     var form = document.getElementById('mturk_form');
     if (document.referrer && ( document.referrer.indexOf('workersandbox') != -1) ) {
-      form.action = "http://workersandbox.mturk.com/mturk/externalSubmit";
+      form.action = "https://workersandbox.mturk.com/mturk/externalSubmit";
     }
   } //}}}
 });
@@ -510,7 +511,14 @@ function is_close_to_start(event){
 function draw_fpoint(ctx, id, x, y){
 	ctx.fillStyle = '#00f';
 	ctx.fillRect(x, y, 2, 2);
-	ctx.fillStyle = '#00f';
+	
+	ctx.font="18px Verdana";
+	ctx.fillStyle = '#000';
+	ctx.fillText(id, x+1, y-3);
+	ctx.fillText(id, x-1, y-3);
+	ctx.fillText(id, x, y-3+1);
+	ctx.fillText(id, x, y-3-1);
+	ctx.fillStyle = '#fff';
 	ctx.fillText(id, x, y-3);
 }
 
@@ -603,7 +611,6 @@ function mousedown_canvas(event){
   }
   else 
     $("#imageB_canvas").css('cursor', 'crosshair');
-  event.preventDefault();
   draw_canvas();
 }
 
@@ -632,7 +639,6 @@ function mousemove_canvas(event){
     var seconds = time.getSeconds();
     begin_time = hours+"/"+minutes+"/"+seconds;
   }
-  event.preventDefault();
 }
 
 // functions related to AMT task
