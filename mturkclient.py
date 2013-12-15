@@ -13,7 +13,7 @@ from PyQt4.QtGui import (QTableWidget, QMenu, QLineEdit, QRadioButton,
                          QTextEdit, QApplication, QStandardItemModel,
                          QAbstractItemView, QMessageBox)
 
-from task import CorrespondenceTask, SegmentationTask
+from task import CorrespondenceTask, SegmentationTask, FixedFeaturesTask
 from evaluation import Evaluation
 
 
@@ -77,6 +77,9 @@ class MainWindow(QWidget):
             self.segmentation_mode = True
         elif os.path.exists(os.path.join(self.projPath, 'mturk_features.ini')):
             self.task = CorrespondenceTask(projFile)
+            self.segmentation_mode = False
+        elif os.path.exists(os.path.join(self.projPath, 'mturk_features_fixed.ini')):
+            self.task = FixedFeaturesTask(projFile)
             self.segmentation_mode = False
         else:
             raise Exception('No configuration file found!')
@@ -322,7 +325,7 @@ class MainWindow(QWidget):
 
         if self.segmentation_mode:
             model.item(0).setEnabled(False)
-        else:
+        elif not os.path.exists(os.path.join(self.projPath, 'mturk_features_fixed.ini')):
             model.item(i).setCheckState(Qt.Unchecked)
             model.item(i).setEnabled(False)
 

@@ -475,6 +475,258 @@ class CorrespondenceTask(AnnotationTask):
         self.reviewTool.start()
 
 
+class FixedFeaturesTask(AnnotationTask):
+    def __init__(self, projFile):
+        super(FixedFeaturesTask, self).__init__(projFile, 'mturk_features_fixed.ini')
+
+    def upload(self, overlapping):
+        """
+        Upload all annotations to MTurk to be corrected. We require only one
+        qualification: Percentage of approved assignments to be not lower than
+        95%. IDs of all uploaded HITs are saved to <self.hitslog_filename> for
+        future reference.
+        """
+        import glob
+        import shutil
+        import boto.mturk.qualification as mturk_qual
+        import boto.mturk.price as mturk_price
+
+        if self.usingS3:
+            logging.info("Using S3: Uploading files\n. Does currently not work!")
+        else:
+            # Set up folders
+            logging.info("Using Dropbox: Uploading files")
+            dropbox_dir = os.path.join(self.dropbox_path, self.projRootDir)
+            if not os.path.exists(os.path.join(dropbox_dir, 'MTurkTemp')):
+                os.makedirs(os.path.join(dropbox_dir, 'MTurkTemp'))
+
+            # Copy webinterface
+            if not os.path.exists(os.path.join(dropbox_dir, 'Webinterface')):
+                shutil.copytree(os.path.join(sys.path[0], 'webinterfaces/features_fixed'),
+                             os.path.join(dropbox_dir, 'Webinterface'))
+
+        self.question_url = self.host_url + self.projRootDir + "/Webinterface/features_fixed.html"
+        self.parent().status.emit("Connecting")
+
+        # Set HIT qualifications, reward and type
+        self.hitslog = codecs.open(self.hitslog_filename, "w", "utf-8")
+        qualifications = mturk_qual.Qualifications()
+        qualifications.add(mturk_qual.
+                                PercentAssignmentsApprovedRequirement(
+                                comparator="GreaterThanOrEqualTo",
+                                integer_value=self.qualification,
+                                required_to_preview=False))
+        reward = mturk_price.Price(self.reward)
+        hittyperesult = self.connection.register_hit_type(self.hittypename,
+                                                            self.description,
+                                                            reward=reward,
+                                                            duration=self.duration * 60,
+                                                            keywords=self.keywords,
+                                                            qual_req=qualifications)
+        self.hittype = hittyperesult[0].HITTypeId
+        self.parent().statusBar.children()[2].setRange(0, len(self.videoLabelHandler.objects))
+
+        # Chop images
+        for i, frame in enumerate(self.videoLabelHandler.files):
+            self.parent().status.emit(frame)
+            if self.parent().view.model().item(i).checkState() == 2:
+	        imageA = frame + "_Before.png"
+	        imageB = frame + "_After.png"
+	        
+	        fpointsA = []
+		for name in sorted(glob.glob(self.videoLabelHandler.path+frame+"_Before_GT-ID_*"), key=lambda x: int(x.split("_")[-1])):
+		    f = open(name, "rb")
+		    fp = [int(name.split("_")[-1])]
+		    for line in f.readlines():
+			fp.append(line[:-1])
+		    fpointsA.append(fp)
+		    f.close()
+		
+		#Divide the list of feature points of this image into sets of 5 feature points
+		for i in xrange(0, len(fpointsA), 5):
+		    arguments = "?category-imageA-imageB=MTurkTemp,"
+		    arguments += imageA + ","
+		    arguments += imageB
+		    arguments += "&fpointsA="
+		
+		    for fp in fpointsA[i:i+5]:
+			arguments += str(fp[0]) + ","
+			arguments += str(fp[1]) + ","
+			arguments += str(fp[2]) + ","
+		    arguments = arguments[:-1]
+		    
+		    #self.images = self.videoLabelHandler.chopImage(frame, overlapping)
+		    #self.parent().statusBar.children()[2].setRange(0, len(self.images))
+
+		    # Create HIT for every image
+		    #for n, image in enumerate(self.images):
+			# Copy images to Dropbox dir
+		    shutil.copy(self.videoLabelHandler.path + imageA, os.path.join(dropbox_dir, 'MTurkTemp'))
+		    shutil.copy(self.videoLabelHandler.path + imageB, os.path.join(dropbox_dir, 'MTurkTemp'))
+
+		    #self.parent().progress.emit(n + 1)
+		    logging.info(self.question_url + arguments)
+		    # print "Link: {0}".format(self.question_url + arguments)
+		    question = boto.mturk.question.ExternalQuestion(
+					external_url=self.question_url + arguments,
+					frame_height=1000)
+		    hitresultset = self.connection.create_hit(hit_type=self.hittype,
+								question=question,
+								lifetime=self.lifetime * 24 * 3600,
+								max_assignments=self.assignments)
+		    self.hitslog.write("{0}\n".format(hitresultset[0].HITId))
+			# print "Hit ID: {0}".format(hitresultset[0].HITId)
+                
+            self.parent().status.emit("Done")
+        # Close Logfile
+        self.hitslog.close()
+
+    def harvest(self):
+        """
+        This downloads all assignments that have not been rejected or approved
+        yet of all HITs with status "Reviewable" to <self.resultFilename>. For
+        every assignment, the downloaded fields are: worker ID, hit ID,
+        assignment ID, accept time, submit time, worker feedback (if any,
+        otherwise "no feedback"), polygon annotation ("no annotation", if for
+        some reason the annotation is not present).
+        """
+        self.parent().status.emit("Downloading results")
+        log = codecs.open(self.resultFilename, "w", "utf-8")
+        hit_ids = utils.readFile(self.hitslog_filename)
+        complete = True
+        self.parent().statusBar.children()[2].setRange(0, len(hit_ids))
+        for i, hit_id in enumerate(hit_ids):
+            hit = self.connection.get_hit(hit_id=hit_id)[0]
+            self.parent().progress.emit(i + 1)
+            if not hit.HITStatus == "Reviewable":
+                complete = False
+                continue
+            rs = self.connection.get_assignments(hit_id=hit_id, page_size=100)
+            #  default assignment status: submitted, including approved and rejected
+            for n, assignment in enumerate(rs):
+                self.parent().status.emit("{0}... # {1}".format(hit_id[:10], n + 1))
+                workerId = assignment.WorkerId
+                hitId = assignment.HITId
+                assignmentId = assignment.AssignmentId
+                acceptTime = assignment.AcceptTime
+                submitTime = assignment.SubmitTime
+                feedback = "no feedback"
+                annotation = "no annotation"
+
+                if assignment.answers[0][0].fields[0].strip() != "":
+                    feedback = assignment.answers[0][0].fields[0]
+                if assignment.answers[0][1].fields[0] != "":
+                    annotation = assignment.answers[0][1].fields[0]
+                fields = [workerId, hitId, assignmentId, acceptTime,
+                          submitTime, feedback, annotation]
+                for field in fields:
+                    log.write(field)
+                    log.write("\n")
+                log.write("\n")
+
+        if not complete:
+            self.parent().status.emit("Not all HITs could be downloaded")
+        else:
+            self.parent().status.emit("Done")
+
+    def readResultFile(self):
+        """Read result File if it exists and return a dictionary."""
+        if os.path.exists(self.resultFilename):
+            entries = utils.readResultFile(self.resultFilename)
+            resultData = {}
+            resultData.setdefault('WorkerID', [])
+            resultData.setdefault('HitID', [])
+            resultData.setdefault('AssignmentID', [])
+            resultData.setdefault('StartTime', [])
+            resultData.setdefault('StopTime', [])
+            resultData.setdefault('Feedback', [])
+            resultData.setdefault('Annotation', [])
+            for entry in entries:
+                if entry[6] != "no annotation":
+                    resultData['WorkerID'].append(entry[0])
+                    resultData['HitID'].append(entry[1])
+                    resultData['AssignmentID'].append(entry[2])
+                    resultData['StartTime'].append(entry[3])
+                    resultData['StopTime'].append(entry[4])
+                    resultData['Feedback'].append(entry[5])
+                    resultData['Annotation'].append(entry[6])
+        else:
+            logging.error("No Resultfile!")
+        self.resultData = resultData
+
+    def getTurked(self):
+        """
+        Parses the annotations out of <self.resultFilename> and writes them to
+        <self.new_annotation>. The best annotation for every image is obtained
+        in polygon_utils.merge_annotations; you can supply your own function if
+        you want to change the default behaviour. If you have defined any outlier
+        workers in <self.outliers>, their annotations will not be considered. If
+        some annotations are empty (i.e. their entry in <self.resultFilename> is
+        "no annotations"), their number will be printed.
+
+        """
+        # Read file
+        entries = utils.readResultFile(self.resultFilename)
+        rejected = utils.readFile(os.path.join(self.logDir, 'rejected'))
+
+        # Init updatedict
+        updatedict = {}  # {imageID: [[x1, y1, x2, y2], [x1, y1, x2, y2], ... ]}
+        for filename in self.videoLabelHandler.files:
+            updatedict.setdefault(filename, [])
+
+        # Build updatedict
+        no_annotation = 0
+        for entry in entries:
+            annotation = entry[6]
+            assignmentId = entry[2]
+            if assignmentId not in rejected:
+                if annotation == "no annotation":
+                    no_annotation += 1
+                else:
+                    image = annotation.split(",")[0]
+                    x, y, imageID = image.split("_")
+                    x, y = float(x), float(y)
+                    correspondence = annotation.split(",")[1:]
+                    if len(correspondence) > 1:
+                        correspondence = [round(float(number), 3) for number in correspondence]
+                        correspondence = zip(*[iter(correspondence)]*4) # Split list into 4 tuples
+                        correspondence = [(pts[0] + x, pts[1] + y, pts[2] + x, pts[3] + y) for pts in correspondence]
+                        updatedict[imageID] += correspondence
+        if no_annotation > 0:
+            logging.info("{0} empty annotations!".format(no_annotation))
+
+        # Write correspondence XML
+        self.videoLabelHandler.writeCorrespondenceXML(self.correspondenceFile, updatedict)
+
+    def reviewHITs(self):
+        """Review tool"""
+        try:
+            entries = utils.readResultFile(self.resultFilename)
+            resultDict = {} # imageID: [annotation_1, ..., annotation_n]
+            for entry in entries:
+                annotation = entry[6]
+                assignmentId = entry[2]
+                workerId = entry[0]
+                if annotation != "no annotation":
+                    imageId = annotation.split(",")[0]
+                    polygon = annotation.split(",")[1:]
+                    resultDict.setdefault(assignmentId, []).append((workerId, imageId, polygon))
+        except:
+            resultDict = {}
+
+        # Create approved and rejected file if necessary
+        if not os.path.exists(os.path.join(self.logDir, 'rejected')):
+            codecs.open(os.path.join(self.logDir, 'rejected'), "w", "utf-8").close()
+
+        if not os.path.exists(os.path.join(self.logDir, 'approved')):
+            codecs.open(os.path.join(self.logDir, 'approved'), "w", "utf-8").close()
+
+        # Start review tool
+        self.parent().status.emit("Reviewing")
+        self.reviewTool = review.ReviewTool(resultDict, self.outliers, self.mturktemp_dir)
+        self.reviewTool.start()
+
+
 class SegmentationTask(AnnotationTask):
     def __init__(self, projFile):
         super(SegmentationTask, self).__init__(projFile, 'mturk_segmentation.ini')
