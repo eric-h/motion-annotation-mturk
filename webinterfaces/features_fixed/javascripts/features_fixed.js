@@ -132,7 +132,7 @@ function zoom_imageB_center(zoom, center_x, center_y){
 }
 
 function show_instructions_step(id){
-	var steps = ["#step1", "#step2", "#step3", "#step4"];
+	var steps = ["#step0", "#step1", "#step2", "#step3", "#step4"];
 	for (var i=0; i<steps.length; i++){
 		if (id != steps[i] &&  $(steps[i]).is(":visible"))  $(steps[i]).hide(100);
 		if (id == steps[i] && !$(id).is(":visible"))  $(id).show(100);
@@ -195,6 +195,7 @@ var opts = {
 }; //}}}
 
 $(document).ready(function() {
+  $("#step0").hide();
   $("#step2").hide();
   $("#step3").hide();
   $("#step4").hide();
@@ -281,6 +282,7 @@ $(document).ready(function() {
     // If we're previewing, disable the button and give it a helpful message
     document.getElementById('submitButton').disabled = true;
     document.getElementById('submitButton').value = "You must ACCEPT the HIT before you can submit the results.";
+	show_instructions_step("#step0");
   } else {
     var form = document.getElementById('mturk_form');
     if (document.referrer && ( document.referrer.indexOf('workersandbox') != -1) ) {
@@ -660,8 +662,8 @@ function submitResults(){
   var duration = getDuration();
   document.getElementById('fpoints').value = results;
   document.getElementById('duration').value = duration;
-  //document.forms["mturk_form"].submit();
-  alert(results);
+  document.forms["mturk_form"].submit();
+  //alert(results);
 }
 
 function getDuration(){
