@@ -13,7 +13,7 @@ from PyQt4.QtGui import (QTableWidget, QMenu, QLineEdit, QRadioButton,
                          QTextEdit, QApplication, QStandardItemModel,
                          QAbstractItemView, QMessageBox)
 
-from task import CorrespondenceTask, SegmentationTask, FixedFeaturesTask
+from task import CorrespondenceTask, SegmentationTask, FixedFeaturesTask, Segmentationv2Task
 from evaluation import Evaluation
 
 
@@ -66,6 +66,7 @@ class MainWindow(QWidget):
     status = pyqtSignal(str)
     """Main window of the MTurKClient application"""
     def __init__(self, projFile):
+        print "Loading..."
         QWidget.__init__(self)
         self.projPath = os.path.split(projFile)[0]
         self.projName = os.path.split(projFile)[1]
@@ -81,6 +82,9 @@ class MainWindow(QWidget):
         elif os.path.exists(os.path.join(self.projPath, 'mturk_features_fixed.ini')):
             self.task = FixedFeaturesTask(projFile)
             self.segmentation_mode = False
+        elif os.path.exists(os.path.join(self.projPath, 'mturk_segmentation_v2.ini')):
+            self.task = Segmentationv2Task(projFile)
+            self.segmentation_mode = True
         else:
             raise Exception('No configuration file found!')
         self.task.setParent(self)

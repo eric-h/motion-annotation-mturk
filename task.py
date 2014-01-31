@@ -100,6 +100,16 @@ class AnnotationTask(QWidget):
         self._conf.write(open(self.configFile, 'w'))
 
     def connect(self):
+        import boto.connection                                                                                                                      
+        try:                                                                                                                                        
+            open(boto.connection.DEFAULT_CA_CERTS_FILE)                                                                                             
+        except IOError as e:                                                                                                                                                                                                                                                                                                              
+            boto.connection.DEFAULT_CA_CERTS_FILE = os.path.join(os.path.dirname(sys.executable), "cacerts.txt")
+        try:                                                                                                                                        
+            open(boto.connection.DEFAULT_CA_CERTS_FILE)                                                                                             
+        except IOError as e:                                                                                                                        
+            raise e
+
         """Set up connection to the Amazon MTurk server"""
         # Sandbox connection
         if self.sandbox:
@@ -109,6 +119,7 @@ class AnnotationTask(QWidget):
             host = "mechanicalturk.amazonaws.com"
         try:
             self.connection = boto.connect_mturk(host=host)
+            self.connection.DEFAULT_CA_CERTS_FILE = os.path.join(os.path.dirname(sys.executable), "cacerts.txt")
             return True
         except:
             return False
@@ -542,14 +553,14 @@ class FixedFeaturesTask(AnnotationTask):
 		    fpointsA.append(fp)
 		    f.close()
 		
-		#Divide the list of feature points of this image into sets of 5 feature points
-		for i in xrange(0, len(fpointsA), 5):
+		#Divide the list of feature points of this image into sets of 10 feature points
+		for i in xrange(0, len(fpointsA), 10):
 		    arguments = "?category-imageA-imageB=MTurkTemp,"
 		    arguments += imageA + ","
 		    arguments += imageB
 		    arguments += "&fpointsA="
 		
-		    for fp in fpointsA[i:i+5]:
+		    for fp in fpointsA[i:i+10]:
 			arguments += str(fp[0]) + ","
 			arguments += str(fp[1]) + ","
 			arguments += str(fp[2]) + ","
@@ -850,6 +861,242 @@ class SegmentationTask(AnnotationTask):
                     elif label == "segpoly":
                         if content != "":
                             annotation = content
+                fields = [workerId, hitId, assignmentId, acceptTime, submitTime, feedback, annotation]
+                for field in fields:
+                    log.write(field)
+                    log.write("\n")
+                log.write("\n")
+
+        if not complete:
+            self.parent().status.emit("Not all HITs could be downloaded")
+        else:
+            self.parent().status.emit("Done")
+
+    def getTurked(self):
+        """
+        Parse the annotations out of <self.resultFilename> and writes them to
+        <self.newProjFile>. The best annotation for every image is obtained in
+        polygon_utils.merge_annotations; you can supply your own function if
+        you want to change the default behaviour. If you have defined any outlier
+        workers in <self.outliers>, their annotations will not be considered. If
+        some annotations are empty (i.e. their entry in <self.resultFilename> is
+        "no annotations"), their number will be printed.
+        """
+        entries = utils.readResultFile(self.resultFilename)
+        no_annotation = 0
+        updatedict = {}  # imageID: [annotation_1, ..., annotation_n]
+        rejected = utils.readFile(os.path.join(self.logDir, 'rejected'))
+
+        for entry in entries:
+            annotation = entry[6]
+            assignmentID = entry[2]
+            if assignmentID not in rejected:
+                if annotation == "no annotation":
+                    no_annotation += 1
+                else:
+                    imageID = ",".join(annotation.split(",")[:2])
+                    coordinate_list = [float(value) for value in annotation.split(",")[2:]]
+                    point_list = zip(*[iter(coordinate_list)] * 2)
+                    polygon = QPolygonF([QPointF(x, y) for x, y in point_list])
+                    updatedict.setdefault(imageID, []).append(polygon)
+        if no_annotation > 0:
+            logging.info("{0} empty annotations!".format(no_annotation))
+
+        # Merge best matching outlines and update XML file
+        from evaluation import PolygonList
+
+        result_dict = {}
+        for imageID in updatedict:
+            pol_list = PolygonList(updatedict[imageID])
+            result_dict[imageID] = pol_list.mergeBestMatchingPolygons()
+
+        self.videoLabelHandler.update(result_dict)
+        self.videoLabelHandler.write(self.newProjFile)
+        self.parent().status.emit("Please open new project file")
+
+    def readResultFile(self):
+        """Read result File if it exists and return a sorted dictionary."""
+        rejected = utils.readFile(os.path.join(self.logDir, 'rejected'))
+        if os.path.exists(self.resultFilename):
+            entries = utils.readResultFile(self.resultFilename)
+            resultData = {}
+            resultData.setdefault('WorkerID', [])
+            resultData.setdefault('HitID', [])
+            resultData.setdefault('AssignmentID', [])
+            resultData.setdefault('StartTime', [])
+            resultData.setdefault('StopTime', [])
+            resultData.setdefault('Feedback', [])
+            resultData.setdefault('Annotation', [])
+            resultData.setdefault('ImageID', [])
+            for entry in entries:
+                if entry[6] != "no annotation" and entry[2] not in rejected:
+                    resultData['WorkerID'].append(entry[0])
+                    resultData['HitID'].append(entry[1])
+                    resultData['AssignmentID'].append(entry[2])
+                    resultData['StartTime'].append(entry[3])
+                    resultData['StopTime'].append(entry[4])
+                    resultData['Feedback'].append(entry[5])
+                    imageID = ",".join(entry[6].split(",")[:2])
+                    x, y, name = imageID.split(",")[1].split("_", 2)
+                    annotation = [float(value) for value in entry[6].split(",")[2:]]
+                    annotation = zip(*[iter(annotation)] * 2)
+                    annotation = [QPointF(point[0] + float(x), point[1] + float(y)) for point in annotation]
+                    resultData['Annotation'].append(QPolygonF(annotation))
+                    resultData['ImageID'].append(name)
+        else:
+            logging.error("No Resultfile!")
+        self.resultData = resultData
+
+    def reviewHITs(self):
+        """Review tool"""
+        try:
+            entries = utils.readResultFile(self.resultFilename)
+            resultDict = {}  # imageID: [annotation_1, ..., annotation_n]
+            for entry in entries:
+                annotation = entry[6]
+                assignmentId = entry[2]
+                workerId = entry[0]
+                if annotation != "no annotation":
+                    imageId = ",".join(annotation.split(",")[1:2])
+                    polygon = annotation.split(",")[2:]
+                    resultDict.setdefault(assignmentId, []).append((workerId, imageId, polygon))
+        except:
+            resultDict = {}
+
+        #Create approved and rejected file if necessary
+        if not os.path.exists(os.path.join(self.logDir, 'rejected')):
+            codecs.open(os.path.join(self.logDir, 'rejected'), "w", "utf-8").close()
+        if not os.path.exists(os.path.join(self.logDir, 'approved')):
+            codecs.open(os.path.join(self.logDir, 'approved'), "w", "utf-8").close()
+
+        #Start review tool
+        self.parent().status.emit("Reviewing")
+        self.reviewTool = review.ReviewTool(resultDict, self.outliers, self.mturktemp_dir, mode="segmentation")
+        self.reviewTool.start()
+
+
+class Segmentationv2Task(AnnotationTask):
+    def __init__(self, projFile):
+        super(Segmentationv2Task, self).__init__(projFile, 'mturk_segmentation_v2.ini')
+
+    def upload(self):
+        """Upload HITs"""
+        import shutil
+        import boto.mturk.qualification as mturk_qual
+        import boto.mturk.price as mturk_price
+
+        if self.usingS3:
+            logging.info("Using S3: Does currently not work!")
+            #self.s3_interface.upload()
+
+        else:
+            #Set up folders
+            logging.info("Using Dropbox: Uploading files")
+            dropbox_dir = os.path.join(self.dropbox_path, self.projRootDir)
+            if not os.path.exists(os.path.join(self.dropbox_path, self.projRootDir, 'MTurkTemp')):
+                os.makedirs(os.path.join(self.dropbox_path, self.projRootDir, 'MTurkTemp'))
+            #Copy webinterface
+            if not os.path.exists(os.path.join(dropbox_dir, 'Webinterface')):
+                shutil.copytree(os.path.join(sys.path[0], 'webinterfaces/segmentation_v2'), os.path.join(dropbox_dir, 'Webinterface'))
+
+        self.question_url = self.host_url + self.projRootDir + "/Webinterface/segmentation_v2.html"
+        self.parent().status.emit("Connecting")
+
+        #Set HIT qualifications, reward and type
+        self.hitslog = codecs.open(self.hitslog_filename, "w", "utf-8")
+        qualifications = mturk_qual.Qualifications()
+        qualifications.add(mturk_qual.
+                           PercentAssignmentsApprovedRequirement(
+                            comparator="GreaterThanOrEqualTo",
+                            integer_value=self.qualification,
+                            required_to_preview=False))
+        reward = mturk_price.Price(self.reward)
+        hittyperesult = self.connection.register_hit_type(
+                                        self.hittypename,
+                                        self.description,
+                                        reward=reward,
+                                        duration=self.duration * 60,
+                                        keywords=self.keywords,
+                                        qual_req=qualifications)
+        self.hittype = hittyperesult[0].HITTypeId
+        self.parent().statusBar.children()[2].setRange(0, len(self.videoLabelHandler.objects))
+
+        for n, obj in enumerate(self.videoLabelHandler.objects):
+            self.parent().progress.emit(n + 1)
+            for i, frame in enumerate(obj.frames):
+                if self.parent().view.model().item(i).checkState() == 2:
+                    self.parent().status.emit("{0}: {1}".format(obj.name, frame.name))
+                    """
+                    if i == 0:
+                        image = self.videoLabelHandler.cropFirstImage(frame, obj)
+                        shutil.copy(os.path.join(self.mturktemp_dir, 'FirstFrames', image), 
+                                os.path.join(self.dropbox_path, self.projRootDir, 'MTurkTemp', 'FirstFrames'))
+                    else:
+                    """
+                    #image = self.videoLabelHandler.cropImage(frame, obj)
+
+                    #Copy in dropbox folder
+                    shutil.copy(os.path.join(self.videoLabelHandler.path, frame.name),
+                                os.path.join(self.dropbox_path, self.projRootDir, 'MTurkTemp'))
+                    URLParam = "?category-image-polygon=" + "MTurkTemp," + frame.name + ',' + frame.getPolygonString()
+                    logging.info(self.question_url + URLParam)
+                    #print "Link: {0}".format(self.question_url + URLParam)
+                    question = boto.mturk.question.ExternalQuestion(
+                                    external_url=self.question_url + URLParam,
+                                    frame_height=600)
+                    hitresultset = self.connection.create_hit(
+			hit_type=self.hittype,
+                        question=question,
+                        lifetime=self.lifetime * 24 * 3600,
+                        max_assignments=self.assignments,
+                        annotation=",".join(frame.name.split(",image-annotation=")[0].split(",")[:2]))
+                    self.hitslog.write("{0}\n" .format(hitresultset[0].HITId))
+                    #print "Hit ID: {0}".format(hitresultset[0].HITId)
+
+        self.parent().status.emit("Done")
+
+    def expireAllHits(self):
+        hit_ids = utils.readFile(self.hitslog_filename)
+
+        for hitId in hit_ids:
+            self.connection.expire_hit(hitId)
+
+    def harvest(self):
+        """
+        This downloads all assignments that have not been rejected or approved
+        yet of all HITs with status "Reviewable" to    <self.resultFilename>.
+        For every assignment, the downloaded fields are: worker ID, hit ID,
+        assignment ID, accept time, submit time, worker feedback (if any,
+        otherwise "no feedback"), polygon annotation ("no annotation", if for
+        some reason the annotation is not present).
+        """
+        self.parent().status.emit("Downloading results")
+        log = codecs.open(self.resultFilename, "w", "utf-8")
+        hit_ids = utils.readFile(self.hitslog_filename)
+        complete = True
+        self.parent().statusBar.children()[2].setRange(0, len(hit_ids))
+        for i, hit_id in enumerate(hit_ids):
+            hit = self.connection.get_hit(hit_id=hit_id)[0]
+            if not hit.HITStatus == "Reviewable":
+                complete = False
+                continue
+            rs = self.connection.get_assignments(hit_id=hit_id, page_size=100)
+            # default assignment status: submitted, including approved and rejected
+            self.parent().progress.emit(i + 1)
+            for n, assignment in enumerate(rs):
+                self.parent().status.emit("{0}... #{1}".format(hit_id[:10], n + 1))
+                workerId = assignment.WorkerId
+                hitId = assignment.HITId
+                assignmentId = assignment.AssignmentId
+                acceptTime = assignment.AcceptTime
+                submitTime = assignment.SubmitTime
+                feedback = "no feedback"
+                annotation = "no annotation"
+                for answer in  assignment.answers[0]:
+		    if answer.qid == "segpoly":
+			annotation = answer.fields[0]
+		    if answer.qid == "feedback":
+			feedback = answer.fields[0]
                 fields = [workerId, hitId, assignmentId, acceptTime, submitTime, feedback, annotation]
                 for field in fields:
                     log.write(field)

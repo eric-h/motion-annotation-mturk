@@ -67,6 +67,9 @@ var linewidth = 1.0;
 var pt_size   = 2.0;
 var pt_color  = "rgba(0,0,255,0.9)";
 
+//Blink function
+var blinkIntervalId = 0;
+
 var is_original_image = true;
 
 // index of the point selected
@@ -199,6 +202,7 @@ $(document).ready(function() {
   $("#step2").hide();
   $("#step3").hide();
   $("#step4").hide();
+  $("#wrongCanvas").hide();
   $("#no-hint").hide();
   $("#hint").focus(function() {
     $("#no-hint").show();
@@ -211,8 +215,15 @@ $(document).ready(function() {
   document.getElementById('change_contrast').disabled = true;
   
   // Events
+  
+  // Wrong events in Image A
+  $("#imageA_canvas").click(function(event)      {$("#wrongCanvas").show(120);});
+  $("#imageA_canvas").dblclick(function(event)   {$("#wrongCanvas").show(120);});
+  $("#imageA_canvas").mousewheel(function(event) {$("#wrongCanvas").show(120);});
+  
   // Mouse Wheel
   $("#imageB_canvas").bind("mousewheel", function(event, delta) {
+	  clearInterval(blinkIntervalId);
       if ($("#slider").slider("value") < 8.0 || delta < 0.0){
 		  $("#slider").slider("value", $("#slider").slider("value") + delta * 0.4);
 		  var x = (viewport_top_left_x + screen_to_viewport_x(event.pageX)*(viewport_width/canvas_width));
@@ -354,8 +365,23 @@ function init_canvas(){//{{{ init function
   ctxB = canvas_imageB.getContext("2d");
   
   draw_canvas();
+  blinkIntervalId = setInterval(fpoint_blink, 50);
 }
 //}}}
+
+var t0 = (new Date().getTime())/1000;
+function fpoint_blink(){
+	ctxA.clearRect(0, 0, true_image_width, true_image_height);
+	draw_imageA();
+	var t = Math.sin((new Date().getTime())/50);
+	var c = Math.floor((t*5)+11).toString(16); //Map [-1,1] to [6,16]
+	draw_fpointsA("#"+c+c+c);
+	
+	/*if (c == "f" && ((new Date().getTime())/1000) - t0 > 3){
+		clearInterval(blinkIntervalId);
+	}*/
+}
+
 
 function draw_canvas(){
   ctxA.clearRect(0, 0, true_image_width, true_image_height);
@@ -508,7 +534,7 @@ function is_close_to_start(event){
 }
 
 //Draw a feature point
-function draw_fpoint(ctx, id, x, y){
+function draw_fpoint(ctx, id, x, y, textColor){
 	ctx.fillStyle = '#00f';
 	ctx.fillRect(x, y, 2, 2);
 	
@@ -518,22 +544,27 @@ function draw_fpoint(ctx, id, x, y){
 	ctx.fillText(id, x-1, y-3);
 	ctx.fillText(id, x, y-3+1);
 	ctx.fillText(id, x, y-3-1);
-	ctx.fillStyle = '#fff';
+	if (typeof(textColor)==='undefined'){
+		ctx.fillStyle = '#fff';
+	}
+	else{
+		ctx.fillStyle = textColor;
+	}
 	ctx.fillText(id, x, y-3);
 }
 
 //Draw the feature points in Image A
-function draw_fpointsA(){
+function draw_fpointsA(textColor){
 	var fpoint_x = image_to_viewportA_x(fpoints[fpoint_selected-1].x1);
 	var fpoint_y = image_to_viewportA_y(fpoints[fpoint_selected-1].y1);
-	draw_fpoint(ctxA, fpoint_selected, fpoint_x, fpoint_y);
+	draw_fpoint(ctxA, fpoint_selected, fpoint_x, fpoint_y, textColor);
 }
 
 //Draw the feature points in Image A
-function draw_fpointsB(){
+function draw_fpointsB(textColor){
 	var fpoint_x = image_to_viewport_x(fpoints[fpoint_selected-1].x2);
 	var fpoint_y = image_to_viewport_y(fpoints[fpoint_selected-1].y2);
-	draw_fpoint(ctxB, fpoint_selected, fpoint_x, fpoint_y);
+	draw_fpoint(ctxB, fpoint_selected, fpoint_x, fpoint_y, textColor);
 }
 
 // GUI input handling
@@ -631,7 +662,7 @@ function mousemove_canvas(event){
   iy = screen_to_image_y(event.pageY)
   vx = screen_to_viewport_x(event.pageX);
   vy = screen_to_viewport_y(event.pageY);
-  draw_canvas();
+  //draw_canvas();
   if(begin_time == ""){
     var time = new Date();
     var hours = time.getHours();

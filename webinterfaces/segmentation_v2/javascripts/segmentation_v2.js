@@ -145,6 +145,8 @@ var opts = {
 }; //}}}
 
 $(document).ready(function() {
+  $("#step0").hide();
+  $("#wrongCanvas").hide();
   $("#no-hint").hide();
   $("#hint").focus(function() {
     $("#no-hint").show();
@@ -155,6 +157,14 @@ $(document).ready(function() {
   $("#zoom").html($("#slider").slider("value"));
   $("#segmentation_canvas").mouseleave(mouseup_canvas);
   document.getElementById('change_contrast').disabled = true;
+  
+  //Events
+  
+  // Wrong events in Image A
+  $("#firstframe_canvas").click(function(event)      {$("#wrongCanvas").show(120);});
+  $("#firstframe_canvas").dblclick(function(event)   {$("#wrongCanvas").show(120);});
+  $("#firstframe_canvas").mousewheel(function(event) {$("#wrongCanvas").show(120);});
+  
   $("#slider, #segmentation_canvas").bind("mousewheel", function(event, delta) {
     $("#slider").slider("value", $("#slider").slider("value") + delta * 0.1);
     center_x = viewport_top_left_x + viewport_width/2;
@@ -176,6 +186,14 @@ $(document).ready(function() {
     draw_canvas();
     return false;
   });
+  
+  function show_instructions_step(id){
+	var steps = ["#step0", "#step1", "#step2", "#step3", "#step4"];
+	for (var i=0; i<steps.length; i++){
+		if (id != steps[i] &&  $(steps[i]).is(":visible"))  $(steps[i]).hide(100);
+		if (id == steps[i] && !$(id).is(":visible"))  $(id).show(100);
+	}
+  }
 
   //{{{ Insert Node ond dblclick
   $("#segmentation_canvas").bind("dblclick", function(event) {
@@ -198,7 +216,7 @@ $(document).ready(function() {
   }); //}}}
 
   // {{{ Init
-  init_canvas();
+  init_images();
   document.getElementById('assignmentId').value = gup('assignmentId');
 
   // Check if the worker is PREVIEWING the HIT or if they've ACCEPTED the HIT
@@ -207,16 +225,19 @@ $(document).ready(function() {
     // If we're previewing, disable the button and give it a helpful message
     document.getElementById('submitButton').disabled = true;
     document.getElementById('submitButton').value = "You must ACCEPT the HIT before you can submit the results.";
+	show_instructions_step("#step0");
+	$(".row").hide();
   } else {
     var form = document.getElementById('mturk_form');
     if (document.referrer && ( document.referrer.indexOf('workersandbox') != -1) ) {
-      form.action = "http://workersandbox.mturk.com/mturk/externalSubmit";
+      form.action = "https://workersandbox.mturk.com/mturk/externalSubmit";
     }
   } //}}}
 });
 
 //{{{ Original Script
-function init_canvas(){//{{{ init function
+var loaded_images = 0;
+function init_images(){
   img = document.createElement("img"); //new Image()
   //document.body.appendChild(img)
   flipped_img = document.createElement("img");
@@ -228,9 +249,21 @@ function init_canvas(){//{{{ init function
   category_name = tokens[0];
   image_name    = tokens[1];
   original_img.src = base_url + '/' + category_name + '/' + image_name;
-  flipped_img.src = base_url + '/' + category_name + '/flipped_' + image_name;
+  //flipped_img.src = base_url + '/' + category_name + '/flipped_' + image_name;
   firstframe_img.src = base_url + '/' + category_name + '/' + image_name;
+  original_img.onload = init_images_handler;
+  firstframe_img.onload = init_images_handler;
   img = original_img;
+}
+
+function init_images_handler(){
+	loaded_images++;
+	if (loaded_images == 2){
+		init_canvas();
+	}
+}
+
+function init_canvas(){//{{{ init function
   true_image_width = img.width;
   true_image_height = img.height;
   viewport_height = true_image_height;
@@ -754,8 +787,8 @@ function submitResults(){
   var duration = getDuration();
   document.getElementById('segpoly').value = results;
   document.getElementById('duration').value = duration;
-  document.forms["mturk_form"].submit();
-  //alert(results);
+  //document.forms["mturk_form"].submit();
+  alert(results);
 }
 
 function getDuration(){

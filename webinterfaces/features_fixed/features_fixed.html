@@ -29,7 +29,7 @@
 			<button class="userBtn">Stats</button>
 		</div>
 	  </div-->
-    <h1>Locate the requested feature points</h1>
+    <h1>Save lives by locating feature points!</h1>
 	  
 	<hr>
 
@@ -59,7 +59,8 @@
 		</div>
 		<div id="step1" class="step">
 			<span style="font-size:17px"><b>Step 1</b>:
-				Find the point of Image A by zooming with your <em>mouse wheel</em> or the <em>zoom slider</em> and <b><u>reach the zoom level x8</u></b>.
+				Find the point of Image A by zooming with your <em>mouse wheel</em> or the <em>zoom slider</em> and <b><u>reach the zoom level x8</u></b>.<br/>
+				<span id="wrongCanvas" style="color:#E11"><b>Zoom, pan and click on the right image</b> (<i>Image B</i>), not the left one.</span>
 			</span>
 		</div>
 		<div id="step2" class="step">
@@ -90,7 +91,8 @@
 	
 	<div class="row" style="position:absolute; top:180px; height:100%">
 		<div id="feature_points" class="span6">
-		    <span class="noselection" style="font-size: 20px;">Image A&nbsp;&nbsp;<i class='icon-lock'></i></span>
+		    <span class="noselection" style="font-size: 20px;">Image A&nbsp;&nbsp;
+			<i class='icon-lock' style="position:relative; top:4px; left:-10px;"></i></span>
 			<canvas id="imageA_canvas" tabindex='1'>
 			<p>We're sorry, but the image cannot be displayed in your browser</p>
 			</canvas>
