@@ -787,8 +787,8 @@ function submitResults(){
   var duration = getDuration();
   document.getElementById('segpoly').value = results;
   document.getElementById('duration').value = duration;
-  //document.forms["mturk_form"].submit();
-  alert(results);
+  document.forms["mturk_form"].submit();
+  //alert(results);
 }
 
 function getDuration(){
@@ -803,7 +803,7 @@ function getDuration(){
 function get_category_image_name(){
   var cat_img_name = gup('category-image-polygon');
   if(cat_img_name == ""){cat_img_name = "images,car.png";}
-  return cat_img_name.split('_')[0];
+  return cat_img_name;
 }
 
 function initialize_polygon(){

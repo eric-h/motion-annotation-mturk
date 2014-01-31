@@ -198,7 +198,7 @@ $(document).ready(function() {
   } else {
     var form = document.getElementById('mturk_form');
     if (document.referrer && ( document.referrer.indexOf('workersandbox') != -1) ) {
-      form.action = "http://workersandbox.mturk.com/mturk/externalSubmit";
+      form.action = "https://workersandbox.mturk.com/mturk/externalSubmit";
     }
   } //}}}
 });
