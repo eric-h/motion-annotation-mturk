@@ -1,0 +1,107 @@
+<html>
+  <title>AMT : Image Segmentation</title>
+  <head>
+    <script src="./javascripts/jquery.min.js"></script>
+    <script src="./javascripts/jquery.mousewheel.js"></script>
+    <script src="./javascripts/jquery-ui.min.js"></script>
+    <script src="./javascripts/spin.min.js"></script>
+    <script src="./javascripts/shape_segmentation.js"></script>
+    <link href="./stylesheets/jquery-ui-1.8.17.custom.css" rel="stylesheet" />
+	<link rel="stylesheet" href="bootstrap/css/bootstrap.css" type="text/css" media="all" />
+    <link href="./stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <link href="./stylesheets/print.css" media="print" rel="stylesheet" type="text/css" />
+    <!--[if lt IE 8]>
+        <link href="./stylesheets/ie.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <![endif]-->
+  </head>
+
+  <body>
+    <div id="container">
+		<h2>Save lives by adjusting the outline of a tool!</h2>
+
+		<div id="instructions" class="noselection">
+			<div id="step0" class="step">
+				<img src="images/carComparison.png" style="float:right; x-overflow:hidden;">
+				<span style="font-size:24px">
+					You must <b>accept the HIT</b> before you can submit the results.
+				</span>
+			</div>
+
+			<span id="step1" class="step" style="font-size:14px">
+				<img src="images/carComparison.png" style="float:right; x-overflow:hidden;">
+				<input id="stepButton" type="button" class="stepButton" name="Next step" value="Next step" onClick="nextStep()"><br/>
+				In the left image a medical tool is marked in red. Make a polygon by adding and moving points until its shape <b>perfectly encloses</b> the tool. Controls:
+				<ul style="margin-bottom: 0px">
+					<li style="font-size:14px;">
+						<b>Zoom</b> using your <em>mouse wheel</em> or the <em>zoom slider</em>.
+					</li>
+					<li style="font-size:14px;">
+						<b>Double click</b> to add or remove points on the polygon.
+					</li>
+					<li style="font-size:14px;">
+						<b>Click and drag</b> to stretch or move the polygon, individual points or to pan the image.
+					</li>
+				</ul>
+				<span>Once you are finished, click the button above.</span>
+				<br/>
+			</span>
+
+			<span id="step2" class="step" style="font-size:14px">
+				<img src="images/carComparison.png" style="float:right; x-overflow:hidden;">
+				<form id="mturk_form" method="post" action="https://www.mturk.com/mturk/externalSubmit">
+					<input type="hidden" id="assignmentId" name="assignmentId" value="">
+					<input type="hidden" id="segpoly" name="segpoly" value="">
+					<input type="hidden" id="duration" name="duration" value="">
+					<input id="hint" type="text" size=50 id="feedback" name="feedback" value="You can leave your feedback here (Optional)">
+					<input id="no-hint" type="text" size=50 id="feedback" name="feedback" value="">
+					<input id="submitButton" type="button" class="submitButton" name="Submit Results" value="Submit Results" onClick="submitResults()">
+				</form>
+
+				If the outlined instrument you outlined contains any holes click the button below to add them.
+				<button id="removeHoleBtn" onClick="removeHole()">Remove last hole</button>
+				<button id="addHoleBtn" onClick="addHole()">Add new hole</button>
+
+				<br/>
+
+				<p style="margin-top:15px; margin-bottom:0px;">
+				The controls remain the same: <b>Zoom</b> with the <em>mouse wheel</em> or <em> slider</em>. <b>Double click</b> to add or remove points. <b>Click and drag</b> to stretch or move the polygon,  points or the image.<br/>
+
+				<span>Once you are finished, click the button above to send us the results.</span>
+				</p>
+			</span>
+
+			<span id="wrongCanvas" style="font-size:14px; color:#E11">
+				<b>Zoom, pan and click on the left image</b>, not the right one.
+			</span>
+
+		</div>
+
+		<hr>
+
+		<div id="functions">
+			<div id="controls">
+				<button onclick="change_contrast()" id="change_contrast">Change contrast</button>
+				<button onclick="reset_annotation()">Reset</button>
+				<div id="zoom-value">
+					<b>Zoom:</b>
+					<span id='zoom'></span>
+					<div id="zoom-slider">
+					    <div id="slider"></div>
+				    </div>
+				</div>
+				<div id="legend">
+					<span style="color:#44F">&#9632;</span> Instrument &nbsp; <span style="color:#4F4">&#9632;</span> Holes
+				</div>
+			</div>
+
+		</div>
+		<div class="row" id="segmentation">
+			<canvas id="segmentation_canvas">
+				<p>We're sorry, but the image cannot be displayed in your browser</p>
+			</canvas>
+			<canvas id="firstframe_canvas">
+			</canvas>
+		</div>
+    </div>
+  </body>
+</html>
